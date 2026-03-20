@@ -1,0 +1,75 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual environments
+.venv/
+venv/
+ENV/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Environment variables (IMPORTANTE: não commitar credenciais!)
+.env
+
+# Data files (dados locais da migração)
+data/raw/
+data/processed/
+data/reports/
+data/logs/
+data/blobs/
+data/glpi_backup/
+data/db_backup/
+data/glpi/
+data/mysql/
+
+# Keep data directory structure
+!data/.gitkeep
+!data/*/.gitkeep
+
+# Test cache
+.pytest_cache/
+.coverage
+htmlcov/
+
+# uv
+uv.lock
+
+# Docker volumes (se usar bind mounts)
+mysql_data/
+glpi_data/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+# SQLite databases
+*.db
+*.sqlite
+*.sqlite3

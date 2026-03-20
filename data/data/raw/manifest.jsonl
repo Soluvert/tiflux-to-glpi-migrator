@@ -1,0 +1,3 @@
+{"exported_at": "2026-03-19T13:22:11.453621", "hash": "73bab79f5bdc4b90bf80fba4e196b72e79a3efe3fcfbf35c4e8307829550e87e", "page": 1, "path": "data/raw/clients/page_1.json", "resource": "clients", "source_id": "clients:1"}
+{"exported_at": "2026-03-19T13:22:12.041279", "hash": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945", "page": 1, "path": "data/raw/contracts/page_1.json", "resource": "contracts", "source_id": "contracts:1"}
+{"exported_at": "2026-03-19T13:22:12.658609", "hash": "b015583457c40dbf20a97b1d86d4831a5f01c88a2da42d56ba264783f7e64e24", "page": 1, "path": "data/raw/tickets/page_1.json", "resource": "tickets", "source_id": "tickets:1"}

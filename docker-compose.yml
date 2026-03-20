@@ -1,0 +1,52 @@
+name: tiflux-glpi-migrator-hml
+
+services:
+  glpi:
+    image: "glpi/glpi:latest"
+    restart: unless-stopped
+    volumes:
+      - glpi_data:/var/glpi
+    env_file:
+      - .env
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8080:80"
+    networks:
+      - glpi_hml_net
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  db:
+    image: "mysql:8.0"
+    restart: unless-stopped
+    volumes:
+      - db_data:/var/lib/mysql
+    environment:
+      MYSQL_RANDOM_ROOT_PASSWORD: "yes"
+      MYSQL_DATABASE: ${GLPI_DB_NAME:-glpi}
+      MYSQL_USER: ${GLPI_DB_USER:-glpi}
+      MYSQL_PASSWORD: ${GLPI_DB_PASSWORD:-glpi}
+    networks:
+      - glpi_hml_net
+    healthcheck:
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${GLPI_DB_USER:-glpi} -p${GLPI_DB_PASSWORD:-glpi} --silent"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+volumes:
+  glpi_data:
+    name: tiflux-glpi-migrator-glpi-data
+  db_data:
+    name: tiflux-glpi-migrator-db-data
+
+networks:
+  glpi_hml_net:
+    name: tiflux-glpi-migrator-hml-net
+    driver: bridge
+

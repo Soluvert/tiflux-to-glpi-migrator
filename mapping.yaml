@@ -1,0 +1,57 @@
+#
+# Regras de mapeamento Tiflux -> GLPI
+# Este arquivo controla como os dados são transformados durante a importação.
+#
+
+strategy:
+  # Como tratar clientes Tiflux no GLPI:
+  # - clients_as_entities: Clientes viram entidades (recomendado para multi-tenant)
+  # - clients_as_suppliers: Clientes viram fornecedores
+  # - clients_as_contacts_only: Apenas contatos, sem entidade/fornecedor
+  clients_as_entities: true
+  clients_as_suppliers: false
+  clients_as_contacts_only: false
+
+# Mapeamento de status Tiflux -> GLPI
+# Valores GLPI: New, In progress, Planned, Waiting, Solved, Closed
+status_mapping:
+  # Status do Tiflux (da API) -> Status GLPI
+  open: "New"
+  Opened: "New"
+  in_progress: "In progress"
+  Em Andamento: "In progress"
+  pending: "Waiting"
+  Pending: "Waiting"
+  Aguardando Retorno Cliente: "Waiting"
+  resolved: "Solved"
+  closed: "Closed"
+
+# Mapeamento de prioridade Tiflux -> GLPI
+# Valores GLPI: 1 (muito baixa) a 6 (muito alta)
+priority_mapping:
+  low: 2
+  baixa: 2
+  medium: 3
+  media: 3
+  normal: 3
+  high: 4
+  alta: 4
+  urgent: 5
+  urgente: 5
+  critical: 6
+  critica: 6
+
+# Como tratar Mesas/Desks do Tiflux
+mesas_mapping:
+  # use_as: "category" - Mesas viram categorias ITIL
+  # use_as: "group" - Mesas viram grupos de técnicos
+  use_as: "category"
+
+# Mapeamento de grupos técnicos
+groups_mapping:
+  technical_groups_to_glpi_groups: true
+
+# Tratamento de anexos
+attachments_mapping:
+  # use_as: "document" - Anexos são importados como Documents
+  use_as: "document"

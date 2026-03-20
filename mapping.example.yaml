@@ -1,0 +1,117 @@
+# =============================================================================
+# Tiflux GLPI Migrator - Regras de Mapeamento
+# =============================================================================
+# Este arquivo define como os dados do Tiflux são transformados para o GLPI.
+# Copie para mapping.yaml e ajuste conforme sua necessidade.
+# =============================================================================
+
+# -----------------------------------------------------------------------------
+# Estratégia de Migração de Clientes
+# -----------------------------------------------------------------------------
+# Define como os clientes do Tiflux serão representados no GLPI.
+#
+# Opções:
+#   - clients_as_entities: Cada cliente vira uma Entidade GLPI (recomendado)
+#   - clients_as_suppliers: Clientes viram Fornecedores
+#   - clients_as_contacts_only: Apenas contatos, sem entidade/fornecedor
+#
+strategy:
+  clients_as_entities: true
+  clients_as_suppliers: false
+  clients_as_contacts_only: false
+
+# -----------------------------------------------------------------------------
+# Mapeamento de Status
+# -----------------------------------------------------------------------------
+# Mapeia status do Tiflux para status do GLPI.
+#
+# Status disponíveis no GLPI:
+#   - New (1)
+#   - In progress (2) - assigned
+#   - Planned (3)
+#   - Waiting (4)
+#   - Solved (5)
+#   - Closed (6)
+#
+# Formato: status_tiflux: "Status GLPI"
+#
+status_mapping:
+  # Status padrão em inglês
+  open: "New"
+  in_progress: "In progress"
+  pending: "Waiting"
+  resolved: "Solved"
+  closed: "Closed"
+  
+  # Status em português (ajuste conforme seu Tiflux)
+  Opened: "New"
+  Aberto: "New"
+  Em Andamento: "In progress"
+  Pending: "Waiting"
+  Aguardando Retorno Cliente: "Waiting"
+  Aguardando: "Waiting"
+  Resolvido: "Solved"
+  Fechado: "Closed"
+
+# -----------------------------------------------------------------------------
+# Mapeamento de Prioridade
+# -----------------------------------------------------------------------------
+# Mapeia prioridade do Tiflux para prioridade do GLPI.
+#
+# Escala GLPI:
+#   1 - Muito baixa
+#   2 - Baixa
+#   3 - Média
+#   4 - Alta
+#   5 - Muito alta
+#   6 - Crítica
+#
+# Formato: prioridade_tiflux: valor_glpi
+#
+priority_mapping:
+  # Inglês
+  low: 2
+  medium: 3
+  normal: 3
+  high: 4
+  urgent: 5
+  critical: 6
+  
+  # Português
+  baixa: 2
+  media: 3
+  normal: 3
+  alta: 4
+  urgente: 5
+  critica: 6
+
+# -----------------------------------------------------------------------------
+# Mapeamento de Mesas/Desks
+# -----------------------------------------------------------------------------
+# Define como as mesas/filas do Tiflux são representadas no GLPI.
+#
+# Opções para use_as:
+#   - "category": Mesas viram Categorias ITIL (recomendado)
+#   - "group": Mesas viram Grupos de técnicos
+#
+mesas_mapping:
+  use_as: "category"
+
+# -----------------------------------------------------------------------------
+# Mapeamento de Grupos
+# -----------------------------------------------------------------------------
+# Define se grupos técnicos do Tiflux são migrados como grupos GLPI.
+#
+groups_mapping:
+  technical_groups_to_glpi_groups: true
+
+# -----------------------------------------------------------------------------
+# Mapeamento de Anexos
+# -----------------------------------------------------------------------------
+# Define como anexos são tratados (para implementação futura).
+#
+# Opções para use_as:
+#   - "document": Anexos viram Documents no GLPI
+#
+attachments_mapping:
+  use_as: "document"
