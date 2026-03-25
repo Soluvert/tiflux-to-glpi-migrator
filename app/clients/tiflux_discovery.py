@@ -46,6 +46,9 @@ def _pagination_hint_from_payload(payload: Any, *, probe_params: dict[str, Any] 
     if not isinstance(payload, (dict, list)):
         return None
     if isinstance(payload, list):
+        # Se o probe usou offset=1 (estilo Tiflux: offset como page number), marcar como offset_page.
+        if probe_params and "offset" in probe_params:
+            return PaginationHint(style="offset_page", params={"offset": 1, "limit": 50}, next_field=None)
         # Sem metadados -> paginação pode existir via query params, mas não dá para inferir.
         return PaginationHint(style="page_limit", params={"page": 1, "limit": 50}, next_field=None)
 
@@ -84,6 +87,7 @@ class TifluxDiscoveryClient:
         # Query params comuns para provar paginação.
         sample_param_sets = [
             {},
+            {"offset": 1, "limit": 1},
             {"page": 1, "limit": 1},
             {"offset": 0, "limit": 1},
             {"take": 1, "skip": 0},
@@ -124,8 +128,14 @@ class TifluxDiscoveryClient:
         if not successful:
             return None, [str(u) for u in unavailable[:20]]
 
-        # Seleciona a melhor capacidade: a primeira que encontramos com base em menor path.
-        successful.sort(key=lambda x: (len(x[1].path), x[1].path))
+        # Seleciona a melhor capacidade: preferir estilos de paginação explícitos
+        # (offset_page, offset_limit, take_skip) sobre page_limit genérico.
+        _pagination_preference = {"offset_page": 0, "offset_limit": 1, "take_skip": 2, "page_limit": 3, "next_url": 4}
+        successful.sort(key=lambda x: (
+            len(x[1].path),
+            _pagination_preference.get(x[1].pagination.style, 5) if x[1].pagination else 5,
+            x[1].path,
+        ))
         chosen = successful[0][1]
         chosen.probe_status = []  # será preenchido pelo serviço
         return chosen, probe_log

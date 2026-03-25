@@ -1,26 +1,9 @@
-name: tiflux-glpi-migrator-hml
+name: tiflux-glpi-migrator
 
 services:
-  glpi:
-    image: "glpi/glpi:latest"
-    restart: unless-stopped
-    volumes:
-      - glpi_data:/var/glpi
-    env_file:
-      - .env
-    depends_on:
-      db:
-        condition: service_healthy
-    ports:
-      - "8080:80"
-    networks:
-      - glpi_hml_net
-    healthcheck:
-      test: ["CMD-SHELL", "curl -fsS http://localhost/ || exit 1"]
-      interval: 10s
-      timeout: 5s
-      retries: 30
-
+  # ---------------------------------------------------------------------------
+  # MySQL 8 — banco do GLPI
+  # ---------------------------------------------------------------------------
   db:
     image: "mysql:8.0"
     restart: unless-stopped
@@ -30,23 +13,84 @@ services:
       MYSQL_RANDOM_ROOT_PASSWORD: "yes"
       MYSQL_DATABASE: ${GLPI_DB_NAME:-glpi}
       MYSQL_USER: ${GLPI_DB_USER:-glpi}
-      MYSQL_PASSWORD: ${GLPI_DB_PASSWORD:-glpi}
-    networks:
-      - glpi_hml_net
+      MYSQL_PASSWORD: ${GLPI_DB_PASSWORD:?Defina GLPI_DB_PASSWORD}
     healthcheck:
-      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${GLPI_DB_USER:-glpi} -p${GLPI_DB_PASSWORD:-glpi} --silent"]
+      test: ["CMD-SHELL", "mysqladmin ping -h localhost -u${GLPI_DB_USER:-glpi} -p${GLPI_DB_PASSWORD} --silent"]
       interval: 10s
       timeout: 5s
       retries: 30
 
+  # ---------------------------------------------------------------------------
+  # GLPI — helpdesk (exposto via Coolify reverse-proxy)
+  # ---------------------------------------------------------------------------
+  glpi:
+    image: "glpi/glpi:latest"
+    restart: unless-stopped
+    volumes:
+      - glpi_data:/var/glpi
+    environment:
+      GLPI_DB_HOST: db
+      GLPI_DB_NAME: ${GLPI_DB_NAME:-glpi}
+      GLPI_DB_USER: ${GLPI_DB_USER:-glpi}
+      GLPI_DB_PASSWORD: ${GLPI_DB_PASSWORD:?Defina GLPI_DB_PASSWORD}
+    depends_on:
+      db:
+        condition: service_healthy
+    # Coolify cuida do proxy; para dev local descomente a linha abaixo:
+    # ports:
+    #   - "8080:80"
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://localhost/ || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+
+  # ---------------------------------------------------------------------------
+  # glpi-init — configura API na primeira vez (roda e sai)
+  # ---------------------------------------------------------------------------
+  glpi-init:
+    image: "mysql:8.0"
+    depends_on:
+      glpi:
+        condition: service_healthy
+    restart: "no"
+    environment:
+      GLPI_DB_HOST: db
+      GLPI_DB_NAME: ${GLPI_DB_NAME:-glpi}
+      GLPI_DB_USER: ${GLPI_DB_USER:-glpi}
+      GLPI_DB_PASSWORD: ${GLPI_DB_PASSWORD:?Defina GLPI_DB_PASSWORD}
+    volumes:
+      - ./scripts:/scripts:ro
+    entrypoint: ["bash", "/scripts/glpi-init.sh"]
+
+  # ---------------------------------------------------------------------------
+  # Migrator — ETL Tiflux → GLPI (roda sob demanda)
+  # ---------------------------------------------------------------------------
+  migrator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: "no"
+    depends_on:
+      glpi:
+        condition: service_healthy
+    volumes:
+      - migrator_data:/app/data
+    environment:
+      TIFLUX_BASE_URL: ${TIFLUX_BASE_URL:-https://api.tiflux.com}
+      TIFLUX_API_TOKEN: ${TIFLUX_API_TOKEN:?Defina TIFLUX_API_TOKEN}
+      GLPI_BASE_URL: http://glpi:80
+      GLPI_USER: ${GLPI_USER:-glpi}
+      GLPI_PASS: ${GLPI_PASS:-glpi}
+      GLPI_DB_HOST: db
+      GLPI_DB_PORT: "3306"
+      GLPI_DB_NAME: ${GLPI_DB_NAME:-glpi}
+      GLPI_DB_USER: ${GLPI_DB_USER:-glpi}
+      GLPI_DB_PASSWORD: ${GLPI_DB_PASSWORD:?Defina GLPI_DB_PASSWORD}
+      MIGRATOR_DATA_DIR: /app/data
+
 volumes:
   glpi_data:
-    name: tiflux-glpi-migrator-glpi-data
   db_data:
-    name: tiflux-glpi-migrator-db-data
-
-networks:
-  glpi_hml_net:
-    name: tiflux-glpi-migrator-hml-net
-    driver: bridge
+  migrator_data:
 

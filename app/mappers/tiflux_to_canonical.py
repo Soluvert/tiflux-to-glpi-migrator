@@ -94,11 +94,14 @@ def _normalize_priority(priority: Any) -> str:
 def _extract_sla_info(sla_data: dict[str, Any] | None) -> SlaInfo | None:
     if not sla_data:
         return None
+    solved = sla_data.get("solved_in_time")
+    if isinstance(solved, str):
+        solved = True
     return SlaInfo(
         attend_expiration=sla_data.get("attend_expiration"),
         solve_expiration=sla_data.get("solve_expiration"),
         attend_sla=sla_data.get("attend_sla"),
-        solved_in_time=sla_data.get("solved_in_time"),
+        solved_in_time=solved,
     )
 
 

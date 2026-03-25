@@ -99,23 +99,71 @@ class TifluxApiClient:
 
             self._update_rate_limit_state(resp)
 
-            if resp.status_code == 429:
+            if resp.status_code in (429, 401):
                 if attempt >= max_attempts:
                     resp.raise_for_status()
                 retry_after = resp.headers.get("Retry-After")
-                wait_s = float(retry_after) if retry_after and retry_after.isdigit() else min(30.0, 1.0 * (2 ** (attempt - 1)))
+                if resp.status_code == 401:
+                    # Tiflux retorna 401 quando rate-limit é excedido de forma persistente
+                    wait_s = min(120.0, 30.0 * (2 ** (attempt - 1)))
+                elif retry_after and retry_after.isdigit():
+                    wait_s = float(retry_after)
+                else:
+                    wait_s = min(30.0, 1.0 * (2 ** (attempt - 1)))
                 # fallback para RateLimit-Reset se Retry-After nao vier
                 if not (retry_after and retry_after.isdigit()) and self._rate_limit_reset_epoch:
                     delta = self._rate_limit_reset_epoch - time.time()
                     if delta > 0:
                         wait_s = max(wait_s, delta)
                 wait_s += random.uniform(0.0, 0.4)
-                logger.warning(f"Tiflux rate-limit 429 attempt={attempt} wait={wait_s:.2f}s")
+                logger.warning(f"Tiflux rate-limit {resp.status_code} attempt={attempt} wait={wait_s:.2f}s")
                 time.sleep(wait_s)
                 continue
 
             resp.raise_for_status()
             return resp.json()
+
+        raise RuntimeError("Unexpected retry loop termination")
+
+    def get_json_with_headers(self, path: str, *, params: dict[str, Any] | None = None) -> tuple[Any, dict[str, str]]:
+        """Like get_json but also returns response headers (useful for x-total-items)."""
+        max_attempts = 8
+        for attempt in range(1, max_attempts + 1):
+            self._respect_rate_limit_before_request()
+            try:
+                resp = self._client.get(path, params=params)
+            except (httpx.TimeoutException, httpx.NetworkError) as e:
+                if attempt >= max_attempts:
+                    raise
+                wait_s = min(10.0, 0.5 * (2 ** (attempt - 1)))
+                wait_s += random.uniform(0.0, 0.3)
+                logger.warning(f"Tiflux network retry attempt={attempt} wait={wait_s:.2f}s err={e}")
+                time.sleep(wait_s)
+                continue
+
+            self._update_rate_limit_state(resp)
+
+            if resp.status_code in (429, 401):
+                if attempt >= max_attempts:
+                    resp.raise_for_status()
+                retry_after = resp.headers.get("Retry-After")
+                if resp.status_code == 401:
+                    wait_s = min(120.0, 30.0 * (2 ** (attempt - 1)))
+                elif retry_after and retry_after.isdigit():
+                    wait_s = float(retry_after)
+                else:
+                    wait_s = min(30.0, 1.0 * (2 ** (attempt - 1)))
+                if not (retry_after and retry_after.isdigit()) and self._rate_limit_reset_epoch:
+                    delta = self._rate_limit_reset_epoch - time.time()
+                    if delta > 0:
+                        wait_s = max(wait_s, delta)
+                wait_s += random.uniform(0.0, 0.4)
+                logger.warning(f"Tiflux rate-limit {resp.status_code} attempt={attempt} wait={wait_s:.2f}s")
+                time.sleep(wait_s)
+                continue
+
+            resp.raise_for_status()
+            return resp.json(), dict(resp.headers)
 
         raise RuntimeError("Unexpected retry loop termination")
 

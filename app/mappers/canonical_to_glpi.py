@@ -90,7 +90,11 @@ def map_ticket_to_glpi(
     ticket_type = 1 if "incid" in desk_name else 2
     
     created_at = ticket.created_at or raw.get("created_at")
-    content_parts = [ticket.subject or "Sem descrição"]
+    description = raw.get("description", "")
+    if description:
+        content_parts = [description]
+    else:
+        content_parts = [ticket.subject or "Sem descrição"]
     if raw.get("services_catalog"):
         sc = raw["services_catalog"]
         content_parts.append(f"\n\nCatálogo: {sc.get('catalog_name', '')} / {sc.get('area_name', '')} / {sc.get('item_name', '')}")
@@ -122,8 +126,25 @@ def map_ticket_to_glpi(
     }
     
     if created_at:
-        payload["date"] = created_at.replace("Z", "").replace("T", " ")[:19]
-    
+        fmt = created_at.replace("Z", "").replace("T", " ")[:19]
+        payload["date"] = fmt
+        payload["date_creation"] = fmt
+
+    updated_at = raw.get("updated_at")
+    if updated_at:
+        payload["date_mod"] = updated_at.replace("Z", "").replace("T", " ")[:19]
+
+    # For closed/resolved tickets, set solvedate and closedate
+    if status in (5, 6):
+        sla = raw.get("sla_info") or {}
+        solved_in_time = sla.get("solved_in_time")
+        if isinstance(solved_in_time, str) and "T" in solved_in_time:
+            payload["solvedate"] = solved_in_time.replace("Z", "").replace("T", " ")[:19]
+        elif updated_at:
+            payload["solvedate"] = updated_at.replace("Z", "").replace("T", " ")[:19]
+        if updated_at:
+            payload["closedate"] = updated_at.replace("Z", "").replace("T", " ")[:19]
+
     if category_id:
         payload["itilcategories_id"] = category_id
     
