@@ -19,6 +19,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 30s
 
   # ---------------------------------------------------------------------------
   # GLPI — helpdesk (exposto via Coolify reverse-proxy)
@@ -35,7 +36,7 @@ services:
       GLPI_DB_PASSWORD: ${GLPI_DB_PASSWORD:?Defina GLPI_DB_PASSWORD}
     depends_on:
       db:
-        condition: service_healthy
+        condition: service_started
     # Coolify cuida do proxy; para dev local descomente a linha abaixo:
     # ports:
     #   - "8080:80"
@@ -44,6 +45,7 @@ services:
       interval: 10s
       timeout: 5s
       retries: 30
+      start_period: 60s
 
   # ---------------------------------------------------------------------------
   # glpi-init — configura API na primeira vez (roda e sai)
@@ -52,7 +54,7 @@ services:
     image: "mysql:8.0"
     depends_on:
       glpi:
-        condition: service_healthy
+        condition: service_started
     restart: "no"
     environment:
       GLPI_DB_HOST: db
@@ -73,7 +75,7 @@ services:
     restart: "no"
     depends_on:
       glpi:
-        condition: service_healthy
+        condition: service_started
     volumes:
       - migrator_data:/app/data
     environment:
