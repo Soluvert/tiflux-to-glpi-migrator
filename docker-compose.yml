@@ -70,12 +70,14 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    restart: "no"
+    restart: unless-stopped
     depends_on:
       glpi:
         condition: service_started
     volumes:
       - migrator_data:/app/data
+    entrypoint: []
+    command: ["sleep", "infinity"]
     environment:
       TIFLUX_BASE_URL: ${TIFLUX_BASE_URL:-https://api.tiflux.com}
       TIFLUX_API_TOKEN: ${TIFLUX_API_TOKEN:?Defina TIFLUX_API_TOKEN}

@@ -34,8 +34,8 @@ Ferramenta de migração completa para transferir dados do **Tiflux** para o **G
 
 ```bash
 # Clonar repositório
-git clone https://github.com/seu-usuario/tiflux-glpi-migrator.git
-cd tiflux-glpi-migrator
+git clone https://github.com/Soluvert/tiflux-to-glpi-migrator.git
+cd tiflux-to-glpi-migrator
 
 # Instalar dependências
 uv sync --dev
@@ -142,6 +142,22 @@ uv run python -m app.main full-run --resume
 # Backup dos dados GLPI
 uv run python -m app.main backup-glpi-data
 ```
+
+### Referência Completa de Comandos
+
+| Comando | Descrição | Flags |
+|---------|-----------|-------|
+| `discover-tiflux` | Descobre endpoints disponíveis na API Tiflux | `--resources` (lista csv), `--verbose` |
+| `export-tiflux` | Exporta dados brutos da API Tiflux | `--resume`, `--continue-on-error`, `--download-blobs/--no-download-blobs` |
+| `analyze-data` | Gera relatórios de qualidade dos dados | — |
+| `full-run` | Executa discover + export + analyze de uma vez | `--resume`, `--continue-on-error` |
+| `install-glpi-hml` | Sobe GLPI de homologação via Docker Compose | `--timeout-seconds` (default: 180) |
+| `validate-glpi` | Valida conexão e permissões da API GLPI | — |
+| `enable-glpi-api` | Habilita API REST do GLPI via SQL | — |
+| `transform` | Transforma dados Tiflux → modelo canônico | — |
+| `import-glpi` | Importa dados transformados no GLPI | `--dry-run`, `--skip-entities`, `--skip-users`, `--skip-categories` |
+| `reconcile` | Verifica integridade dados importados vs fonte | — |
+| `backup-glpi-data` | Copia volumes Docker GLPI para pasta local | — |
 
 ## Mapeamento Personalizado
 
@@ -251,6 +267,57 @@ Campos não mapeados são preservados no campo `raw` do modelo canônico e podem
 
 Atualmente não há filtro por ticket. Você pode editar manualmente os arquivos em `data/raw/tickets/` antes de executar `transform`.
 
+## Deploy no Coolify
+
+O projeto inclui um `docker-compose.yml` pronto para deploy no Coolify.
+
+### Variáveis de Ambiente (configurar no Coolify)
+
+**Obrigatórias:**
+
+| Variável | Descrição |
+|----------|----------|
+| `GLPI_DB_PASSWORD` | Senha do banco MySQL. Usada por todos os serviços. |
+| `TIFLUX_API_TOKEN` | Token da API Tiflux (Configurações > Integrações > API). |
+
+**Opcionais (têm defaults):**
+
+| Variável | Default | Descrição |
+|----------|---------|-----------|
+| `GLPI_DB_NAME` | `glpi` | Nome do banco MySQL |
+| `GLPI_DB_USER` | `glpi` | Usuário MySQL |
+| `TIFLUX_BASE_URL` | `https://api.tiflux.com` | URL base da API Tiflux |
+| `GLPI_USER` | `glpi` | Usuário admin do GLPI |
+| `GLPI_PASS` | `glpi` | Senha admin do GLPI |
+
+### Configuração do Domínio
+
+- Aponte o domínio para o serviço **glpi** na porta **80**
+- O migrator **não precisa de domínio** (é uma ferramenta CLI)
+- O Coolify cuida do TLS/HTTPS automaticamente
+
+### Executando Comandos no Migrator
+
+O container `migrator` fica rodando com `sleep infinity`. Para executar comandos:
+
+1. No Coolify, acesse o container `migrator` via **Execute Command**
+2. Execute os comandos normalmente:
+
+```bash
+uv run python -m app.main discover-tiflux
+uv run python -m app.main export-tiflux --resume
+uv run python -m app.main full-run
+```
+
+### Serviços
+
+| Serviço | Função | Persistente? |
+|---------|--------|--------------|
+| `db` | MySQL 8.0 | Sim (volume `db_data`) |
+| `glpi` | GLPI helpdesk (porta 80) | Sim (volume `glpi_data`) |
+| `glpi-init` | Configura API na primeira vez | Não (roda e sai) |
+| `migrator` | ETL Tiflux → GLPI (comandos sob demanda) | Sim (volume `migrator_data`) |
+
 ## Limitações Conhecidas
 
 - Anexos/documentos não são migrados automaticamente
@@ -273,5 +340,5 @@ Contribuições são bem-vindas! Por favor:
 
 ## Suporte
 
-- Abra uma [Issue](https://github.com/seu-usuario/tiflux-glpi-migrator/issues) para bugs ou sugestões
+- Abra uma [Issue](https://github.com/Soluvert/tiflux-to-glpi-migrator/issues) para bugs ou sugestões
 - Para dúvidas sobre Tiflux ou GLPI, consulte suas documentações oficiais
