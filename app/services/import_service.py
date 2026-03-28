@@ -588,6 +588,7 @@ def _fix_post_import_via_sql(
                 f"-P{db_port}",
                 f"-u{db_user}",
                 f"-p{db_password}",
+                "--skip-ssl",
                 db_name,
             ],
             input=sql,
