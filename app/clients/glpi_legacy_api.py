@@ -215,7 +215,7 @@ class GlpiLegacyApiClient:
 
     def find_or_create_user(self, name: str, email: str | None = None) -> int:
         """Busca usuário pelo login ou cria se não existir."""
-        login = name.lower().replace(" ", ".").split("@")[0][:50]
+        login = email if email else name.lower().replace(" ", ".")[:50]
         try:
             results = self.search_items(
                 "User",
